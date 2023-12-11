@@ -1,0 +1,1 @@
+﻿Flag(FileOn("LC_system.pmi.0.res")) & Set(toto | queue_internal_event: NATURAL-{0} +-> (1..14)*{INTERNAL_EVENT_ALL} & queue_internal_event: seq((1..14)*{INTERNAL_EVENT_ALL}) & not(queue_internal_event = {}) => (not(queue_internal_event = {}) & "Operation is well defined" => 1: 0..size(queue_internal_event)))

@@ -1,0 +1,200 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" datamodel="ecmascript" initial="lcsystem">
+    <datamodel>
+    	<data id="train_sum" expr="0"/>
+	<data id="train_ma" expr="0"/>
+    </datamodel>
+    <parallel id="lcsystem">
+        <state id="sensor_up" initial="UPS_NOTRAIN">
+	    <state id="UPS_NOTRAIN">
+		<transition event="uptrain.head.toAR" target="UPS_AR" cond="In('UPT_MARCH') &amp;&amp; (train_sum=0 || train_sum=1)">
+		    <assign location="train_sum" expr="train_sum + 1"/>
+		</transition>
+	    </state>
+	    <state id="UPS_AR">
+		<onentry>
+		    <if cond="(train_sum=2 || train_sum=1)">
+        	    	<if cond="train_sum==2">
+			    <raise event="order.signaller.redflash"/>
+		    	<elseif cond="train_sum==1"/>
+			    <raise event="order.signaller.red"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="uptrain.head.toAP" target="UPS_AP" cond="In('UPT_MARCH')"/>
+	    </state>
+	    <state id="UPS_AP">
+		<onentry> 
+		    <if cond="(!(In('INB_COLSE')) &amp;&amp; train_ma=MA_FORBID)||(train_ma=MA_FORBID)||(train_ma=MA_ALLOW &amp;&amp; In('M_CLEAR') &amp;&amp; In('INB_COLSE') &amp;&amp; In('OUTB_COLSE') &amp;&amp; In('SIGNAL_WHITE'))">
+			<if cond="!In(‘INB_COLSE’) &amp;&amp; train_ma=MA_FORBID">
+			    <raise event="order.inbarrier.colse"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="uptrain.head.toCR" target="UPS_CR" cond="In('UPT_MARCH')"/>
+	    </state>
+	    <state id="UPS_CR">
+		<onentry>
+		    <if cond="(train_ma=MA_FORBID)||(train_ma=MA_ALLOW &amp;&amp; In('M_CLEAR') &amp;&amp; In('INB_COLSE') &amp;&amp; In('OUTB_COLSE') &amp;&amp; In('SIGNAL_WHITE'))">
+			<if cond="train_ma=MA_FORBID">
+			    <raise event="order.uptrain.stop"/>
+			</if>
+		    </if>
+      		</onentry>
+		<transition event="uptrain.tail.toEX" target="UPS_EX" cond="In(‘UPT_MARCH’) &amp;&amp; (train_sum=2 || train_sum=1) &amp;&amp; train_ma=MA_ALLOW">
+		    <assign location="train_sum" expr="train_sum - 1"/>
+		</transition>
+	    </state>
+	    <state id="UPS_EX">
+		<onentry> 
+		    <if cond="(train_sum=1 || train_sum=0)">
+			<raise event="upcrossing.finish"/>
+		    	<if cond="train_sum==1">
+			    <raise event="order.signaller.red"/>
+		        <elseif cond="train_sum==0"/>
+			    <raise event="order.outbarrier.open"/>
+			    <raise event="order.inbarrier.open"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="upcrossing.finish" target="UPS_NOTRAIN"/>
+	    </state>
+	</state>
+	<state id="sensor_down" initial="DOWNS_NOTRAIN">
+	    <state id="DOWNS_NOTRAIN">
+		<transition event="downtrain.head.toAR" target="DOWNS_AR" cond="In('DOWNT_MARCH') &amp;&amp; (train_sum=0 || train_sum=1)">
+		    <assign location="train_sum" expr="train_sum + 1"/>
+		</transition>
+	    </state>
+	    <state id="DOWNS_AR">
+		<onentry>
+		    <if cond="(train_sum=2 || train_sum=1)">
+        	    	<if cond="train_sum==2">
+			    <raise event="order.signaller.redflash"/>
+		    	<elseif cond="train_sum==1"/>
+			    <raise event="order.signaller.red"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="downtrain.head.toAP" target="DOWNS_AP" cond="In('DOWNT_MARCH')"/>
+	    </state>
+	    <state id="DOWNS_AP">
+		<onentry>
+		    <if cond="(!(In('INB_COLSE')) &amp;&amp; train_ma=MA_FORBID)||(train_ma=MA_FORBID)||(train_ma=MA_ALLOW &amp;&amp; In('M_CLEAR') &amp;&amp; In('INB_COLSE') &amp;&amp; In('OUTB_COLSE') &amp;&amp; In('SIGNAL_WHITE'))">
+			<if cond="!In(‘INB_COLSE’) &amp;&amp; train_ma=MA_FORBID">
+			    <raise event="order.inbarrier.colse"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="downtrain.head.toCR" target="DOWNS_CR" cond="In('DOWNT_MARCH')"/>
+	    </state>
+	    <state id="DOWNS_CR">
+		<onentry>
+		    <if cond="(train_ma=MA_FORBID)||(train_ma=MA_ALLOW &amp;&amp; In('M_CLEAR') &amp;&amp; In('INB_COLSE') &amp;&amp; In('OUTB_COLSE') &amp;&amp; In('SIGNAL_WHITE'))">
+			<if cond="train_ma=MA_FORBID">
+			    <raise event="order.downtrain.stop"/>
+			</if>
+		    </if>
+      		</onentry>
+		<transition event="downtrain.tail.toEX" target="DOWNS_EX" cond="In('DOWNT_MARCH') &amp;&amp; (train_sum=2 || train_sum=1) &amp;&amp; train_ma=MA_ALLOW">
+		    <assign location="train_sum" expr="train_sum - 1"/>
+		</transition>
+	    </state>
+	    <state id="DOWNS_EX">
+		<onentry>
+		    <if cond="(train_sum=1 || train_sum=0)">
+			<raise event="downcrossing.finish"/>
+		    	<if cond="train_sum==1">
+			    <raise event="order.signaller.red"/>
+		        <elseif cond="train_sum==0"/>
+			    <raise event="order.outbarrier.open"/>
+			    <raise event="order.inbarrier.open"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="downcrossing.finish" target="DOWNS_NOTRAIN"/>
+	    </state>
+	</state>
+	<state id="monitor" initial="M_NOCLEAR">
+	    <state id="M_NOCLEAR">
+		<transition event="crossing.clear" target="M_CLEAR" cond="train_ma=MA_FORBID"/>
+	    </state>
+	    <state id="M_CLEAR">
+		<onentry> 
+		    <if cond="train_ma=MA_FORBID">
+			<if cond="!(In('UPS_NOTRAIN') &amp;&amp; In('DOWNS_NOTRAIN'))">
+			    <raise event="order.outbarrier.colse"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="crossing.unclear" target="M_NOCLEAR" cond="train_ma=MA_FORBID"/>
+	    </state>
+	</state>
+	<state id="train_up" initial="UPT_MARCH">
+	    <state id="UPT_MARCH">
+		<transition event="order.uptrain.stop" target="UPT_STOP"/>
+	    </state>
+	    <state id="UPT_STOP">
+		<transition event="order.uptrain.go" target="UPT_MARCH"/>
+	    </state>
+	</state>
+	<state id="train_down" initial="DOWNT_MARCH">
+	    <state id="DOWNT_MARCH">
+		<transition event="order.downtrain.stop" target="DOWNT_STOP"/>
+	    </state>
+	    <state id="DOWNT_STOP">
+		<transition event="order.downtrain.go" target="DOWNT_MARCH"/>
+	    </state>
+	</state>
+	<state id="signaller" initial="SIGNAL_WHITE">
+	    <state id="SIGNAL_RED">
+		<transition event="order.signaller.white" target="SIGNAL_WHITE" cond="train_ma=MA_FORBID"/>
+		<transition event="order.signaller.redflash" target="SIGNAL_REDFLASH"/>
+	    </state>
+	    <state id="SIGNAL_WHITE">
+		<transition event="order.signaller.red" target="SIGNAL_RED"/>
+		<transition event="order.signaller.redflash" target="SIGNAL_REDFLASH"/>
+	    </state>
+	    <state id="SIGNAL_REDFLASH">
+		<transition event="order.signaller.red" target="SIGNAL_RED"/>
+		<transition event="order.signaller.white" target="SIGNAL_WHITE" cond="train_ma=MA_FORBID"/>
+	    </state>
+	</state>
+	<state id="barrier_in" initial="INB_OPEN">
+	    <state id="INB_OPEN">
+		<onentry> 
+		    <if cond="train_ma=MA_FORBID">
+			<if cond="In('UPS_NOTRAIN') &amp;&amp; In('DOWNS_NOTRAIN')">
+			    <raise event="order.signaller.white"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="order.inbarrier.colse" target="INB_COLSE" cond="train_ma=MA_FORBID"/>
+	    </state>
+	    <state id="INB_COLSE">
+		<transition event="order.inbarrier.open" target="INB_OPEN" cond="train_ma=MA_FORBID"/>
+	    </state>
+	</state>
+	<state id="barrier_out" initial="OUTB_OPEN">
+	    <state id="OUTB_OPEN">
+		<transition event="order.outbarrier.colse" target="OUTB_COLSE" cond="train_ma=MA_FORBID"/>
+	    </state>
+	    <state id="OUTB_COLSE">
+		<onentry>
+		    <if cond="train_ma=MA_FORBID &amp;&amp; In('M_CLEAR') &amp;&amp; In('INB_COLSE') &amp;&amp; In('SIGNAL_WHITE')">
+			<assign location="train_ma" expr="MA_ALLOW"/>
+			<if cond="In(‘UPS_CR’) &amp;&amp; In(‘UPT_STOP’)">
+			    <raise event="order.uptrain.go"/>
+		    	</if>
+		    	<if cond="In(‘DOWNS_CR’) &amp;&amp; In(‘DOWNT_STOP’)">
+			    <raise event="order.downtrain.go"/>
+		    	</if>
+		    </if>
+      		</onentry>
+		<transition event="order.outbarrier.open" target="OUTB_OPEN" cond="train_ma=MA_ALLOW">
+		    <assign location="train_ma" expr="MA_FORBID"/>
+		</transition>
+	    </state>
+	</state>
+    </parallel>
+</scxml>
